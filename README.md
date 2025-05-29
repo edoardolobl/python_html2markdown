@@ -110,4 +110,3 @@ Estimated token count for the generated document: ~14500 tokens (using tiktoken 
 ## License
 
 This project is open-source. You are free to use, modify, and distribute it as you see fit.
-(Consider adding a specific license like MIT if you wish formalize terms).
