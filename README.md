@@ -1,112 +1,163 @@
-# Web Documentation Scraper to Markdown
+# Web Documentation Scraper
 
-## Description
+This script is a versatile tool for scraping online documentation from websites and converting the HTML content into Markdown format. It is designed to handle various documentation structures and provides options for controlling the scraping depth, filtering URLs, and selecting different conversion methods.
 
-This Python script scrapes documentation websites and converts their HTML content into a single Markdown file. The output is optimized for easy ingestion by AI agents and Large Language Models (LLMs), facilitating the process of gathering and preprocessing online documentation.
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Command-Line Arguments](#command-line-arguments)
+- [Conversion Methods](#conversion-methods)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
-*   **Recursive Link Scraping:** Efficiently crawls and discovers documentation links within a specified domain.
-*   **Configurable Crawling:** Allows users to set the maximum crawl depth and the total number of pages to convert.
-*   **Multiple Conversion Methods:** Offers a choice of HTML-to-Markdown conversion engines:
-    *   **Docling:** Advanced conversion (if available and installed separately).
-    *   **Markdownify:** Robust conversion, particularly good for handling code blocks.
-    *   **html2text:** A basic fallback converter.
-*   **Preferred Converter Selection:** Users can select their primary preferred conversion method.
-*   **Graceful Fallback:** If the preferred converter fails or is unavailable, the script automatically falls back through other methods (Docling -> Markdownify -> html2text -> Plain Text Extraction).
-*   **Main Content Extraction:** Intelligently attempts to extract only the main content from web pages, reducing noise and irrelevant elements like sidebars or footers.
-*   **Consolidated Output:** Generates a single, well-structured Markdown file containing all scraped and converted documentation.
-*   **Token Estimation:** Provides an estimated token count for the output document using `tiktoken` with the `o200k_base` encoding for accuracy (falls back to word count if `tiktoken` is unavailable).
-*   **User-Friendly CLI:** Interactive command-line interface for easy input of scraping parameters.
-*   **Well-Commented Code:** The script is thoroughly commented, with logging for better understanding and debugging.
+*   **Consistent Scraping**: Uses Breadth-First Search (BFS) to traverse links predictably.
+*   **Multiple Conversion Methods**: Supports `markdownify`, `html-to-markdown`, `pyhtml2md`, and `docling-core`.
+*   **Configurable Scraping**: Control depth, number of pages, and target specific content areas using CSS selectors.
+*   **URL Filtering**: Include or exclude URLs based on regex patterns.
+*   **Flexible Output**: Save individual Markdown files or concatenate them into a single document.
+*   **Detailed Logging**: Monitor the scraping and conversion process.
 
-## Prerequisites
 
-*   Python 3.7+ (or a similar recent version)
-*   `pip` (Python package installer)
+
 
 ## Installation
 
-1.  Ensure Python and pip are installed on your system.
-2.  Clone or download the `webscrapper.py` script.
-3.  Install the necessary Python libraries by running the following command in your terminal:
-    ```bash
-    pip install requests beautifulsoup4 html-to-markdown markdownify tiktoken
-    ```
-4.  **Optional Dependency (Docling):**
-    If you have access to Docling and wish to use it as a conversion method, ensure it is installed in your Python environment. Docling is not included in the standard installation command above.
+To use this script, you need Python 3.8 or higher. You can install the required dependencies using pip:
+
+```bash
+pip install requests beautifulsoup4 markdownify html-to-markdown pyhtml2md docling-core tiktoken
+```
+
+*   `requests`: For making HTTP requests to fetch web pages.
+*   `beautifulsoup4`: For parsing HTML and extracting content.
+*   `markdownify`: A powerful HTML to Markdown converter.
+*   `html-to-markdown`: Another robust HTML to Markdown converter.
+*   `pyhtml2md`: A simple HTML to Markdown converter.
+*   `docling-core`: A core component of the Docling library for advanced document processing and conversion. (Note: The full `docling` package has extensive dependencies, `docling-core` is a lighter alternative for HTML to Markdown conversion).
+*   `tiktoken`: (Optional) Used for more accurate token estimation, especially useful for AI agent applications. If not installed, the script will fall back to word count.
+
+
+
 
 ## Usage
 
-1.  Navigate to the directory where you saved `webscrapper.py`.
-2.  Run the script from your terminal:
-    ```bash
-    python webscrapper.py
-    ```
-3.  The script will then prompt you for the following information:
-    *   **Base URL:** The starting URL for the documentation you want to scrape (e.g., `https://docs.example.com`). This URL must include the scheme (`http://` or `https://`).
-    *   **Maximum Crawl Depth:** An integer specifying how many links deep the scraper should follow from the base URL (e.g., `3`). Press Enter for the default value (3).
-    *   **Maximum Number of Pages:** An integer limiting the total number of pages to convert (e.g., `50`). Press Enter for the default value (50).
-    *   **Preferred Converter:** Your choice of primary HTML-to-Markdown conversion engine. Options are `'docling'`, `'markdownify'`, or `'html2text'`. Press Enter for the default ('docling').
-    *   **Output Filename:** The desired name for the generated Markdown file (e.g., `my_docs.md`). Press Enter for the default (`comprehensive_documentation.md`). If you don't add `.md`, it will be appended.
+To run the script, execute it from your terminal with the base URL of the documentation site you want to scrape, along with any desired arguments.
 
-The script will then proceed to scrape and convert the documentation. The final Markdown file will be saved in the same directory where the script was executed.
+```bash
+python improved_webscrapper.py <base_url> [options]
+```
+
+Replace `<base_url>` with the actual URL of the documentation site. For example:
+
+```bash
+python improved_webscrapper.py https://docs.python.org/3/ --output_dir python_docs --max_depth 2 --max_pages 100 --conversion_method markdownify
+```
+
+
+
+
+## Command-Line Arguments
+
+| Argument                  | Description                                                                                                                              | Default Value      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `base_url`                | **(Required)** The base URL of the documentation site to scrape.                                                                         | N/A                |
+| `--output_dir`            | Directory to save the Markdown files.                                                                                                    | `./output`         |
+| `--max_depth`             | Maximum depth for link discovery.                                                                                                        | `3`                |
+| `--max_pages`             | Maximum number of unique pages to scrape.                                                                                                | `50`               |
+| `--conversion_method`     | Preferred HTML to Markdown conversion method. See [Conversion Methods](#conversion-methods) for options.                                   | `auto`             |
+| `--concatenate_output`    | Concatenate all individual Markdown files into a single file named `all_documentation.md`.                                               | `False` (flag)     |
+| `--log_level`             | Set the logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).                                                                 | `INFO`             |
+| `--main_content_selector` | CSS selector to identify the main content area of a page. This is highly recommended for cleaner output.                                 | `None`             |
+| `--include_patterns`      | List of regex patterns for URLs to include. If provided, only URLs matching any of these patterns will be scraped.                       | `None`             |
+| `--exclude_patterns`      | List of regex patterns for URLs to exclude. URLs matching any of these patterns will be skipped.                                         | `None`             |
+
+
+
 
 ## Conversion Methods
 
-The script employs several HTML-to-Markdown conversion methods to provide flexibility and robustness:
+The script supports several HTML to Markdown conversion libraries. You can specify your preferred method using the `--conversion_method` argument. If set to `auto` (default), the script will attempt to use available converters in a predefined order.
 
-1.  **Docling:** (If available and selected/enabled) Offers advanced document structure analysis and conversion.
-2.  **Markdownify:** A powerful library that is generally good at preserving code block formatting and overall structure.
-3.  **html2text:** A more basic converter that serves as a reliable fallback.
-4.  **Plain Text Extraction:** If all Markdown conversion methods fail for a page, the script will extract the raw text content from the HTML.
+*   **`auto` (Default)**: The script will try `docling`, then `markdownify`, then `pyhtml2md`, and finally `html-to-markdown`. If all fail, it falls back to plain text extraction.
+*   **`docling`**: Utilizes the `docling-core` library. This method might offer more advanced document structure preservation but currently requires writing to a temporary file.
+*   **`markdownify`**: A popular and generally robust converter. It provides good control over output formatting.
+*   **`pyhtml2md`**: A straightforward converter that often produces clean Markdown.
+*   **`html2text`**: Uses the `html-to-markdown` library (note the argument name `html2text` for historical reasons, it maps to `html-to-markdown` library). A reliable fallback for many HTML structures.
 
-The script will first attempt to use the user's **preferred converter**. If the preferred method fails or is unavailable, it will cycle through the other methods in the order: Docling -> Markdownify -> html2text, skipping any method that was already tried as preferred.
+It is recommended to experiment with different conversion methods for your target documentation site to find the one that yields the best-formatted Markdown.
 
-## Output
 
-*   A single Markdown file (e.g., `comprehensive_documentation.md`) containing the scraped content from all processed pages.
-*   A message printed to the console after completion, indicating the path to the output file and an estimated token count for the document.
 
-### Token Estimation Details
-The script provides an estimated token count for the generated Markdown file. By default, it uses the `tiktoken` library with the `o200k_base` encoding, which aligns with tokenization methods used by advanced OpenAI models (like GPT-4o and GPT-4 Turbo). This provides a more accurate estimate of how many tokens the document will consume in an LLM context.
 
-If `tiktoken` is not installed or fails to initialize (e.g., if the specific encoding is not available), the script will fall back to a simpler word-based count (`len(text.split())`). The method used for estimation (`tiktoken (o200k_base)` or `word count`) will be indicated in the console output.
+## Examples
 
-## Example
+Here are a few examples demonstrating how to use the `improved_webscrapper.py` script:
+
+**1. Basic Usage (Scrape with default settings):**
 
 ```bash
-python webscrapper.py
-Enter the base URL for the documentation (e.g., https://docs.example.com): https://requests.readthedocs.io/en/latest/
-Enter the maximum crawl depth for links (integer, default: 3): 
-Enter the maximum number of pages to convert (integer, default: 50): 20
-Choose your preferred HTML-to-Markdown converter ('docling', 'markdownify', 'html2text') (default: 'docling'): markdownify
-Enter the desired output filename (default: comprehensive_documentation.md): requests_docs.md
-
-Starting documentation conversion with the following parameters:
-  Base URL: https://requests.readthedocs.io/en/latest/
-  Max Crawl Depth: 3
-  Max Pages to Convert: 20
-  Output File: requests_docs.md
-  Preferred Converter: markdownify
-
-Starting conversion of documentation site: https://requests.readthedocs.io/en/latest/
-Discovery parameters - Max Depth: 3, Max Pages to Convert: 20
-Found 50 unique pages. Processing up to 20 pages.
-Processing page 1/20: https://requests.readthedocs.io/en/latest/
-... (script output continues) ...
-Conversion complete! Generated requests_docs.md with content from 20 pages.
-Estimated token count for the generated document: ~14500 tokens (using tiktoken (o200k_base)). 
+python improved_webscrapper.py https://docs.python.org/3/
 ```
-*(Note: The exact token count in the example output may vary based on library versions and content.)*
 
-## Troubleshooting
+This will scrape the Python 3 documentation starting from the base URL, go up to a depth of 3, scrape a maximum of 50 pages, use the `auto` conversion method, and save individual Markdown files in an `./output` directory.
 
-*   **Poor Conversion Quality:** If a website doesn't convert well, try selecting a different preferred conversion method when prompted. Some websites with heavy client-side JavaScript rendering might pose challenges for this scraper.
-*   **Dependency Issues:** Ensure all required libraries (requests, beautifulsoup4, html-to-markdown, markdownify, tiktoken) are correctly installed in your Python environment. Use `pip list` to check installed packages.
-*   **Docling Not Found:** If you intend to use Docling, verify it's installed. It's an optional dependency not included in the standard `pip install` command.
-*   **Network Errors:** Ensure you have a stable internet connection. The script includes basic error handling for request issues, but persistent network problems will hinder scraping.
+**2. Specify Output Directory and Max Pages:**
+
+```bash
+python improved_webscrapper.py https://nextjs.org/docs --output_dir ./nextjs_docs --max_pages 100
+```
+
+This command scrapes the Next.js documentation, saves the output to `./nextjs_docs`, and limits the scraping to the first 100 unique pages found.
+
+**3. Use a Specific Conversion Method and Concatenate Output:**
+
+```bash
+python improved_webscrapper.py https://developers.google.com/gemini/docs --conversion_method markdownify --concatenate_output
+```
+
+This example scrapes the Google Gemini API documentation, forces the use of the `markdownify` converter, and combines all the resulting Markdown into a single file (`all_documentation.md`) in the default `./output` directory.
+
+**4. Scrape with Limited Depth and Specific Content Selector:**
+
+```bash
+python improved_webscrapper.py https://react.dev/reference/react --max_depth 2 --main_content_selector "article.markdown"
+```
+
+This scrapes the React documentation reference section up to depth 2, focusing only on content within `<article class="markdown">` tags.
+
+**5. Include and Exclude Specific URL Patterns:**
+
+```bash
+python improved_webscrapper.py https://docs.djangoproject.com/en/5.0/ --include_patterns ".*/topics/.*" ".*/ref/.*" --exclude_patterns ".*/migrations/.*"
+```
+
+This command scrapes the Django documentation, but only includes URLs containing `/topics/` or `/ref/` in their path, while explicitly excluding any URLs containing `/migrations/`.
+
+**6. Set Logging Level to Debug:**
+
+```bash
+python improved_webscrapper.py https://docs.docker.com/get-started/ --log_level DEBUG
+```
+
+This runs the scraper on the Docker documentation with detailed debug logging enabled, which can be helpful for troubleshooting.
+
+Feel free to combine these options to tailor the scraping process to your specific needs.
+
+
+
+
+## Contributing
+
+Contributions are welcome! If you have suggestions for improvements, bug fixes, or new features, please feel free to open an issue or submit a pull request on the GitHub repository.
 
 ## License
 
-This project is open-source. You are free to use, modify, and distribute it as you see fit.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+
